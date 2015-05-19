@@ -12,15 +12,8 @@ auxillary move file (ie. ch4.mv). The default files are in.bs and in.mv.
 
 ----- INSTALLATION -----
 
-Compile by command 'cx xbs'. This compiles the C program together 
-with the X-Window includes and libraries.
-If everything works properly, you can do 'cx -O xbs' in a second
-step to optimize.
-Possibly the settings inside cx have to be changed for some
-operating systems. Presently cx is set up for IBM AIX.
-There is a second version called cx.sgi which is set up for 
-Silicon Graphics workstations.
-
+Look in the Makefile and adjust as necessary (mostly likely no change is needed).
+Run make.
 
 ----- INPUT -----
 
