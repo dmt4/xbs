@@ -7,7 +7,7 @@ CFLAGS = -O3
 
 LIBS = -lX11 -lm 
 
-LIBPATH = -L/usr/X11R6/lib
+LIBPATH =
 
 
 all:	xbs.c
