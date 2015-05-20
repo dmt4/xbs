@@ -1,7 +1,7 @@
 
 xbs ball-and-sticks plotting program
 ====================================
-##### (M. Methfessel Nov. 1995)
+###### (M. Methfessel Nov. 1995, modified by D. Pashov May 2015)
 
 
 This program uses X-window graphics to produce ball-and-sticks plots.
