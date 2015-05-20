@@ -8,8 +8,9 @@ Group:          Productivity/Scientific/Chemistry
 Source:         %{name}-%{version}.tar.xz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-build
 BuildRequires:  libX11-devel
+%if 0%{?suse_version}
 BuildRequires:  fdupes
-
+%endif
 
 %description
 The ball-and-sticks plotting program can create still
@@ -41,9 +42,9 @@ Extra docs and examples for %{name}
 install -D -s -m 755 %{name} %{buildroot}%{_bindir}/%{name}
 install -D    -m 644 debian/%{name}.1 %{buildroot}%{_mandir}/man1/%{name}.1
 gzip -9 %{buildroot}%{_mandir}/man1/*
-
+%if 0%{?suse_version}
 %fdupes -s $RPM_BUILD_ROOT
-
+%endif
 
 %clean
 rm -rf %{buildroot}
