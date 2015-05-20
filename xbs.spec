@@ -2,7 +2,7 @@ Name:           xbs
 Version:        0
 Release:        8
 Url:            https://github.com/dmt4/xbs
-Summary:        Ball-and-sticks plotting program
+Summary:        X ball-and-sticks
 License:        GPL-2.0
 Group:          Productivity/Scientific/Chemistry
 Source:         %{name}-%{version}.tar.xz
@@ -13,11 +13,9 @@ BuildRequires:  fdupes
 %endif
 
 %description
-The ball-and-sticks plotting program can create still
-and moving three dimensional models of molecules. X11 and
-PostScript output are available.  Models can be rotated,
-scaled, etc. Various labeling, shading, lighting, 
-coloring options are available.
+X ball-and-sticks shows pseudo-3D cartoon models of atomistic 
+configurations. It has sophisticated data format and offers 
+various labelling, shading, lighting and colouring options.
 
 
 %package doc
@@ -42,13 +40,13 @@ Extra docs and examples for %{name}
 install -D -s -m 755 %{name} %{buildroot}%{_bindir}/%{name}
 install -D    -m 644 debian/%{name}.1 %{buildroot}%{_mandir}/man1/%{name}.1
 gzip -9 %{buildroot}%{_mandir}/man1/*
+
 %if 0%{?suse_version}
 %fdupes -s $RPM_BUILD_ROOT
 %endif
 
-%clean
-rm -rf %{buildroot}
-
+#%%clean
+#rm -rf %%{buildroot}
 
 %files
 %defattr(-,root,root)
