@@ -1,4 +1,3 @@
-#include <string.h> /* strchr(3), strstr(3) */
 
 
 /* ----- various useful routines ------- */
@@ -77,10 +76,10 @@ char str[],str1[];
   l=strlen(str);
 
   i1=0;
-  for (i=0; i<l; i++) 
+  for (i=0; i<l; i++)
     if ((str[i]!=' ') && (str[i]!='\n')) { i1=i; break; }
   i2=0;
-  for (i=l-1; i>=0; i--) 
+  for (i=l-1; i>=0; i--)
     if ((str[i]!=' ') && (str[i]!='\n')) { i2=i+1; break; }
   for (i=i1;i<i2;i++) str1[i-i1]=str[i];
   str1[i2-i1]=0;
@@ -112,7 +111,7 @@ int force;
   strcpy (fid1, fid);
   l=strlen(fid1);
   p=fid1;
-  for (i=0;i<l;i++) 
+  for (i=0;i<l;i++)
     if (fid1[i]=='/') p=fid1+i;
 
   if (!force) {
@@ -120,7 +119,7 @@ int force;
     if (q && (q!=fid1+strlen(fid1)-1)) return;
   }
   if (!strchr(p,'.')) strcat (fid1,".");
-  q=strchr(p,'.'); 
+  q=strchr(p,'.');
   if (strlen(ext)>0) q++;
   *q = 0;
   strcat(fid1,ext);
@@ -128,13 +127,10 @@ int force;
 }
 
 
-/* ----- match ------- */
-int match (str, pat)
-char str[], pat[];
-{
+int match (char str[], char pat[]) {
   char *p,*s;
   p=pat;
-  s=str; 
+  s=str;
 
   while (*p != 0) {
 
@@ -144,14 +140,14 @@ char str[], pat[];
       if (*p == 0) return 1;   /* trailing '*' matches all */
       for (;;) {               /* find match to char after '*' */
         if (*s == 0) return 0;
-        if ((*s == *p) || (*p == '+')) 
+        if ((*s == *p) || (*p == '+'))
           if (match(s+1,p+1)) return 1;   /* ok if rest matches */
         s++;
       }
       return 0;                /* tried all cases but none worked */
     }
-    
-    else {                     /* no wildcard -- char must match */   
+
+    else {                     /* no wildcard -- char must match */
       if (*s == 0) return 0;
       if ((*p != *s) && (*p != '+')) return 0;
       s++;
@@ -163,14 +159,13 @@ char str[], pat[];
   return 1;
 }
 
-/* ----- get_extent ----- */
 void get_extent(xx1,xx2,yy1,yy2,zz1,zz2)
 float *xx1,*xx2,*yy1,*yy2,*zz1,*zz2;
 {
   float big,x1,x2,y1,y2,z1,z2;
   int i;
 
-  big=1000000; if(nbas==0) big=0;
+  big=1000000; if (nbas==0) big=0;
   x1=y1=z1=big;
   x2=y2=z2=-big;
   for (i=0;i<nbas;i++) {
@@ -186,109 +181,88 @@ float *xx1,*xx2,*yy1,*yy2,*zz1,*zz2;
   *zz1=z1+center[2];  *zz2=z2+center[2];
 }
 
-/* ----- atompos: position and radius on paper for an atom --- */
-void atompos( float fac, float p[3], float rad,
-             float zp[2], float *zr)
+void atompos (float fac, float p[3], float rad,
+              float zp[2], float *zr)
 {
-  float y[3],q[3],v1[3],v2[3];
-  float xxx,za1,za2,zb1,zb2,a,b;
+  float y[3], q[3], v1[3], v2[3];
+  float xxx, za1, za2, zb1, zb2, a, b, qn;
 
-  if (pmode==1) {
-    zp[0]=fac*p[0];
-    zp[1]=fac*p[1];
-    *zr=fac*rad;
-    *zr=MAXRAD;
-    if (dist0-p[2]>0) *zr=fac*rad*dist0/(dist0-p[2]);
-    if (*zr > MAXRAD) *zr=MAXRAD;
+  if (pmode == 1) {
+    zp[0] = fac*p[0];
+    zp[1] = fac*p[1];
+    *zr = fac*rad;
+    *zr = MAXRAD;
+    if (dist0 - p[2]>0) *zr = fac*rad*dist0 / (dist0-p[2]);
+    if (*zr > MAXRAD) *zr = MAXRAD;
     return;
   }
 
-  vscal(p, 1.0, q);
-  q[2] = q[2]-dist;
-  vscal(p, 1.0, y);
-  xxx = -sp(y,q)/sp(q,q);
-  vsum(y, q, 1.0, xxx, y);
-  if(sp(y,y)<=1e-3) { y[0]=1.0; y[1]=0.0; y[2]=0.0; }
+  vscal (p, 1.0, q);
+  q[2] = q[2] - dist;
+  vscal (p, 1.0, y);
+  xxx = -sp(y,q) / sp(q,q);
+  qn = sqrt(sp(q,q));
+  vsum (y, q, 1.0, xxx, y);
+  if (sp(y,y) <= 1e-3) {
+    y[0] = 1.0;
+    y[1] = 0.0;
+    y[2] = 0.0;
+  }
 
-  a = -rad*rad / sp(q,q);
-  b = rad*sqrt((1.0+a) / sp(y,y));
-  vsum(q, y, a, b, v1);
-  vsum(q, y, a, -b, v2);
-  vsum(p, v1, 1.0, 1.0, v1);
-  vsum(p, v2, 1.0, 1.0, v2);
+
+  /* detect pathological cases for true perspective */
+  if (pmode == 2) {
+
+    /* viewpoint lies inside sphere */
+    if (qn <= rad) {
+      *zr = -10;
+      return;
+    }
+
+    /* atom lies behind viewpoint */
+    if (q[2] >= 0) {
+      *zr = -1;
+      return;
+    }
+  }
+
+  a = -rad * rad / sp(q,q);
+  b = rad * sqrt ((1+a) / sp(y,y));
+
+  vsum (q, y, a, b, v1);
+  vsum (q, y, a, -b, v2);
+  vsum (p, v1, 1.0, 1.0, v1);
+  vsum (p, v2, 1.0, 1.0, v2);
   za1 = fac*v1[0]*dist / (dist-v1[2]);
   za2 = fac*v1[1]*dist / (dist-v1[2]);
   zb1 = fac*v2[0]*dist / (dist-v2[2]);
   zb2 = fac*v2[1]*dist / (dist-v2[2]);
-  zp[0] = 0.5*(za1+zb1);
-  zp[1] = 0.5*(za2+zb2);
+
+  zp[0] = 0.5 * (za1 + zb1);
+  zp[1] = 0.5 * (za2 + zb2);
   *zr = (zb1-za1)*(zb1-za1) + (zb2-za2)*(zb2-za2);
   *zr = 0.5 * sqrt(*zr);
 }
 
-/* ----- readclusterdata ---- */
-int readclusterdata(char infile[])
-{
-  FILE *fp;
-  char str[257],token[81];
-  char xxx [81];
-  char *p;
-  int l,i,nn;
 
-  if((fp = fopen (infile,"r")) == NULL) return 0;
-  
-  fgets(str, 257, fp);
-  while(!feof(fp)) {
-    l=strlen(str);
-    str[l+1]='\0';
-    strcpy(token,"SNOT");
-    sscanf(str,"%s",token);   
-    if (p=strstr(str,"frame")) {
-      if (nframe*nbas>FBMAX) rx("increase internal dimension FBMAX");
-      if (nframe>NFRMAX) rx("increase internal dimension NFRMAX");
-      p=p+6;
-      sprintf(frstr[nframe], "%-80s", p);
-      for (i=0;i<strlen(frstr[nframe]);i++)
-        if (frstr[nframe][i] == '\n') frstr[nframe][i]='\0';
-      for (i=0;i<nbas;i++) {
-        nn=nframe*nbas+i;
-        fscanf(fp,"%f", &frame[0][nn]);
-        fscanf(fp,"%f", &frame[1][nn]);
-        fscanf(fp,"%f", &frame[2][nn]);
-      }
-      nframe++;
-
-      if ( nframe%50 == 0) {    
-        sprintf (xxx, ": frame %d         ", nframe);
-        showline (win, 10, 8, "Reading ", inmv, xxx);
-        XFlush (dpy);
-      }
-
-      fgets(str, 257, fp);
-    } else 
-      readclusterline(str,0); 
-    fgets(str, 257, fp);
-  }
-  sprintf(curf,"%s ", inf);
-  return 1;
-}
-
-/* ----- readclusterline ------ */
   int readclusterline(char str[], int helpme)
   {
     char token[81], cname[81];
     float rval, bval, gval, gray;
-    int l,n,i,nn;
+    int l, n, i, k, nn, a[4];
+    float atcors[4][3];
 
-    l=strlen(str); if(l<1) return 0;
-    strcpy(token, "SNOT");
-    sscanf(str,"%s",token);   
-    if(!strcmp(token,"SNOT")) return 0;  /* empty line */
-    if(token[0]=='*') return 0;          /* comment -- no error */
+    l = strlen(str); if (l < 1) return 0;
+    *token = 0;
+    sscanf (str,"%s", token);
+    if (! *token) return 0;               /* empty line */
+    if (token[0]=='*') return 0;          /* comment -- no error */
 
     if (helpme) {
       if (abbrev(token,"spec",4))
         sprintf(gmsg,"Usage: spec label radius color  - define species");
+      else if (abbrev(token,"tell",4))
+        sprintf(gmsg,"Usage: tell i ... - tell xyz, distance, angle, or torsion");
       else if (abbrev(token,"atom",4))
         sprintf(gmsg,"Usage: atom label x y z  - place atom at (x,y,z)");
       else if (abbrev(token,"bonds",5))
@@ -320,36 +294,82 @@ int readclusterdata(char infile[])
       return 0;
     }
 
-    if(!strcmp(token,"spec")) {
+    /* display coordinates, distance, angle, or torsion (Jan Labanowski) */
+    if (!strcmp(token,"tell")) {
+      a[0] = a[1] = a[2] = a[3] = -1;
+      sscanf(str,"%*s %d %d %d %d", &a[0], &a[1], &a[2], &a[3]);
+      n = 0;
+      for(i=0; i<4; i++) {
+        if (a[i] > 0) {
+          if (a[i] > nbas){
+            sprintf(gmsg, "Atom number %d at position %d is too large",a[i],i+1);
+            return 0;
+          }
+          for (k=0; k<3; k++) {
+            if (iframe == 0)
+              atcors[i][k] = atom[a[i]-1].pos[k];
+            else
+              atcors[i][k] = frame[k][iframe*nbas+a[i]-1];
+          }
+          n++;
+        }
+        else break;
+      }
+
+      if (n == 0) {
+        sprintf(gmsg,"Shows coordinates (for 1 atom), distance (2 atoms),"
+                " angle (3), torsion (4)");
+      }
+      if (n == 1) {
+        sprintf(gmsg,"Coordinates X[%d]=%.4f Y[%d]=%.4f Z[%d]=%.4f",
+                a[0], atcors[0][0], a[0], atcors[0][1], a[0], atcors[0][2]);
+      }
+      else if (n == 2) {
+        sprintf(gmsg, "Distance %d:%d is %.4f", a[0], a[1],
+                distance(atcors[0], atcors[1]));
+      }
+      else if (n == 3) {
+        sprintf(gmsg, "Angle %d:%d:%d is %.4f deg", a[0], a[1],  a[2],
+                angle(atcors[0], atcors[1], atcors[2]));
+      }
+      else if (n == 4) {
+        sprintf(gmsg, "Torsion angle %d:%d:%d:%d is %.4f deg",
+                a[0], a[1], a[2], a[3],
+                torsion(atcors[0], atcors[1], atcors[2], atcors[3]));
+      }
+      return 0;
+    }
+
+    if (!strcmp(token,"spec")) {
       sscanf(str,"%*s %s %f %n", spec[nspec].lab, &spec[nspec].rad, &n);
-      strip (spec[nspec].cname, str+n); 
-      nspec++; 
+      strip (spec[nspec].cname, str+n);
+      nspec++;
       if (nspec>NSPMAX) rx("increase internal dimension NSPMAX");
       return 2;
     }
 
-    if(!strcmp(token,"atom")) {
+    if (!strcmp(token,"atom")) {
       atom[nbas].pol[0]=0;
       atom[nbas].pol[1]=0;
       atom[nbas].pol[2]=0;
-      sscanf(str,"%*s %s %f %f %f %f %f %f", atom[nbas].lab, 
+      sscanf(str,"%*s %s %f %f %f %f %f %f", atom[nbas].lab,
              &atom[nbas].pos[0], &atom[nbas].pos[1], &atom[nbas].pos[2],
-             &atom[nbas].pol[0], &atom[nbas].pol[1], &atom[nbas].pol[2]); 
+             &atom[nbas].pol[0], &atom[nbas].pol[1], &atom[nbas].pol[2]);
       nbas++; if (nbas>NAMAX) rx("increase internal dimension NAMAX");
       return 2;
     }
 
-    if(!strcmp(token,"bonds")) {
-      sscanf(str,"%*s %s %s %f %f %f %n", bonds[nbonds].lab1, 
+    if (!strcmp(token,"bonds")) {
+      sscanf(str,"%*s %s %s %f %f %f %n", bonds[nbonds].lab1,
         bonds[nbonds].lab2, &bonds[nbonds].min, &bonds[nbonds].max,
              &bonds[nbonds].rad, &n);
-      strip (bonds[nbonds].cname, str+n); 
-      nbonds++; 
+      strip (bonds[nbonds].cname, str+n);
+      nbonds++;
       if (nbonds>NBTMAX) rx("increase internal dimension NBTMAX");
       return 2;
     }
 
-    if(!strcmp(token,"line")) {
+    if (!strcmp(token,"line")) {
       sscanf(str, "%*s %f %f %f %f %f %f",
              &xline[nxline].a[0],&xline[nxline].a[1],&xline[nxline].a[2],
              &xline[nxline].b[0],&xline[nxline].b[1],&xline[nxline].b[2]);
@@ -358,23 +378,23 @@ int readclusterdata(char infile[])
       return 1;
     }
 
-    if(!strcmp(token,"tmat")) {
+    if (!strcmp(token,"tmat")) {
       sscanf(str, "%*s %f %f %f %f %f %f %f %f %f",
-             &tmat[0][0], &tmat[0][1], &tmat[0][2], 
-             &tmat[1][0], &tmat[1][1], &tmat[1][2], 
+             &tmat[0][0], &tmat[0][1], &tmat[0][2],
+             &tmat[1][0], &tmat[1][1], &tmat[1][2],
              &tmat[2][0], &tmat[2][1], &tmat[2][2]);
       return 1;
     }
 
-    if(!strcmp(token,"dist") || !strcmp(token,"d")) {
+    if (!strcmp(token,"dist") || !strcmp(token,"d")) {
       sscanf(str, "%*s %f", &dist0);
       return 1;
     }
 
-    if(!strcmp(token,"inc")) {sscanf(str, "%*s %f", &dalfa); return 3;}
+    if (!strcmp(token,"inc")) {sscanf(str, "%*s %f", &dalfa); return 3;}
 
-    if(!strcmp(token,"frm")) {
-      sscanf(str, "%*s %d", &nn); 
+    if (!strcmp(token,"frm")) {
+      sscanf(str, "%*s %d", &nn);
       if (nn>nframe || nn<1) {
         sprintf (emsg, "No frame %d available", nn);
         return 0;
@@ -384,7 +404,7 @@ int readclusterdata(char infile[])
       return 2;
     }
 
-    if(!strcmp(token,"light")) {
+    if (!strcmp(token,"light")) {
       light[0]=light[1]=light[2]=0.0;
       sscanf(str,"%*s %f %f %f", &light[0], &light[1], &light[2]);
       if (light[0]*light[0]+light[1]*light[1]+light[2]*light[2]<.01) {
@@ -393,56 +413,106 @@ int readclusterdata(char infile[])
         return 2;
       }
       if (color) {
-        sprintf(emsg, "light: only works in b/w mode"); 
+        sprintf(emsg, "light: only works in b/w mode");
         return 0;
       }
       gmode=G_LIGHT;
       return 2;
     }
 
-    if(!strcmp(token,"step"))  {sscanf(str,"%*s %d", &fstep); return 1;}
-    if(!strcmp(token,"scale")) {
-      sscanf(str,"%*s %f", &scale); 
+    if (!strcmp(token,"step"))  {sscanf(str,"%*s %d", &fstep); return 1;}
+    if (!strcmp(token,"scale")) {
+      sscanf(str,"%*s %f", &scale);
       scale=scale*igs;
       return 1;
     }
-    if(!strcmp(token,"rfac"))  {sscanf(str,"%*s %f", &radfac); return 1;}
-    if(!strcmp(token,"bfac"))  {sscanf(str,"%*s %f", &bndfac); return 1;}
-    if(!strcmp(token,"amp"))   {sscanf(str,"%*s %f", &amp); return 2;}
-    if(!strcmp(token,"pos")) 
+    if (!strcmp(token,"rfac"))  {sscanf(str,"%*s %f", &radfac); return 1;}
+    if (!strcmp(token,"bfac"))  {sscanf(str,"%*s %f", &bndfac); return 1;}
+    if (!strcmp(token,"amp"))   {sscanf(str,"%*s %f", &amp); return 2;}
+    if (!strcmp(token,"pos"))
       {sscanf(str,"%*s %f %f", &taux, &tauy); return 1;}
-    if(!strcmp(token,"dpos"))   {
+    if (!strcmp(token,"dpos"))   {
       sscanf(str,"%*s %f", &dtaux); dtauy=dtaux; chginfo=1; return 0;}
 
-    if(!strcmp(token,"gramp"))   {
-      gslope=gz0=0; 
-      sscanf(str, "%*s %f %f", &gslope, &gz0); 
+    if (!strcmp(token,"gramp"))   {
+      gslope=gz0=0;
+      sscanf(str, "%*s %f %f", &gslope, &gz0);
       if (gslope*gslope<0.1) {
         sprintf (gmsg, "Use standard coloring");
         gmode=G_STD;
         return 2;
       }
       if (color) {
-        sprintf(emsg, "gramp: only works in b/w mode"); 
+        sprintf(emsg, "gramp: only works in b/w mode");
         return 0;
       }
-      gmode=G_RAMP; 
-      return 2; 
+      gmode=G_RAMP;
+      return 2;
     }
 
-    if(!strcmp(token,"switches"))   {
+    if (!strcmp(token,"switches"))   {
       sscanf(str, "%*s %d %d %d %d %d %d %d %d %d",
              &usepixmap,&numbers,&grayvalues,&bline,&wire,
              &withbonds,&recenter,&pmode,&shadow);
       return 2;
     }
 
-    sprintf(emsg,"Undefined command: %s", token); 
+    sprintf(emsg,"Undefined command: %s", token);
     if (startup) printf ("Cannot understand line: %s\n", str);
     return 0;
-  }    
+  }
 
-/* ----- writeclusterdata ---- */
+
+int readclusterdata(char infile[])
+{
+  FILE *fp;
+  char str[257];
+  char xxx [81];
+  char *p;
+  int l, i, nn;
+
+  if (!(fp=fopen(infile,"r"))) return 0;
+
+  fgets (str, 256, fp);
+  while (!feof(fp)) {
+    l = strlen(str);
+    str[l+1] = '\0';
+
+    if (p=strstr(str,"frame")) {
+      if (nframe*nbas>FBMAX) rx("increase internal dimension FBMAX");
+      if (nframe>NFRMAX) rx("increase internal dimension NFRMAX");
+      p=p+6;
+      sprintf(frstr[nframe], "%-80s", p);
+      for (i=0;i<strlen(frstr[nframe]);i++)
+        if (frstr[nframe][i] == '\n') frstr[nframe][i]='\0';
+      for (i=0;i<nbas;i++) {
+        nn=nframe*nbas+i;
+        fscanf(fp,"%f", &frame[0][nn]);
+        fscanf(fp,"%f", &frame[1][nn]);
+        fscanf(fp,"%f", &frame[2][nn]);
+      }
+      nframe++;
+
+      if ( nframe%50 == 0) {
+        sprintf (xxx, ": frame %d         ", nframe);
+        showline (win, 10, 8, "Reading ", inmv, xxx);
+        XFlush (dpy);
+      }
+
+      fgets(str, 257, fp);
+    }
+
+    else
+      readclusterline(str,0);
+
+    fgets(str, 256, fp);
+  }
+
+  sprintf (curf,"%s ", inf);
+  return 1;
+}
+
+
 void writeclusterdata(char outfile[], int svstep, int svrgb)
 {
   FILE *fp;
@@ -451,31 +521,31 @@ void writeclusterdata(char outfile[], int svstep, int svrgb)
   time_t  ltime;
   char    timestr[41];
 
-  if((fp = fopen (outfile,"w")) == NULL) {
+  if ((fp = fopen (outfile,"w")) == NULL) {
     sprintf(emsg, "Cannot open file %s\n", outfile); return;}
-  
-  time(&ltime);              
+
+  time(&ltime);
   strcpy (timestr,  ctime(&ltime));
   timestr[24]=0;
   fprintf (fp, "* Saved %s from %s\n\n", timestr, inf);
 
-  for (i=0;i<nbas;i++) 
+  for (i=0;i<nbas;i++)
     fprintf(fp, "atom %6s  %10.3f %10.3f %10.3f \n",
             atom[i].lab, atom[i].pos[0], atom[i].pos[1],
             atom[i].pos[2]);
 
   fprintf(fp, "\n");
-  for (i=0;i<nspec;i++) 
-    if (svrgb || reverse) 
+  for (i=0;i<nspec;i++)
+    if (svrgb || reverse)
       fprintf(fp, "spec %6s %10.3f   %.2f %.2f %.2f\n",
               spec[i].lab, spec[i].rad, spec[i].r, spec[i].g, spec[i].b);
     else
       fprintf(fp, "spec %6s %10.3f   %s\n",
               spec[i].lab, spec[i].rad, spec[i].cname);
-  
+
   fprintf(fp, "\n");
-  for(i=0;i<nbonds;i++) 
-    if (svrgb || reverse) 
+  for(i=0;i<nbonds;i++)
+    if (svrgb || reverse)
       fprintf(fp, "bonds %5s %5s %8.3f %8.3f %8.3f   %.2f %.2f %.2f\n",
               bonds[i].lab1, bonds[i].lab2, bonds[i].min, bonds[i].max,
               bonds[i].rad, bonds[i].r, bonds[i].g, bonds[i].b);
@@ -483,7 +553,7 @@ void writeclusterdata(char outfile[], int svstep, int svrgb)
       fprintf(fp, "bonds %5s %5s %8.3f %8.3f %8.3f   %s\n",
               bonds[i].lab1, bonds[i].lab2, bonds[i].min, bonds[i].max,
               bonds[i].rad, bonds[i].cname);
-  
+
   fprintf(fp,"\ntmat %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f %6.3f\n",
           tmat[0][0], tmat[0][1], tmat[0][2], tmat[1][0], tmat[1][1],
           tmat[1][2], tmat[2][0], tmat[2][1], tmat[2][2]);
@@ -492,11 +562,11 @@ void writeclusterdata(char outfile[], int svstep, int svrgb)
   fprintf(fp, "inc   %8.3f\n", dalfa);
   fprintf(fp, "scale %8.3f\nrfac %.2f\nbfac %.2f\n", scale,radfac,bndfac);
   fprintf(fp, "pos %8.3f %8.3f\n", taux, tauy);
-  if (gmode==G_RAMP) 
+  if (gmode==G_RAMP)
     fprintf(fp, "gramp %8.3f %8.3f\n", gslope, gz0);
-  if (gmode==G_LIGHT) 
+  if (gmode==G_LIGHT)
     fprintf(fp, "light %8.3f %8.3f %8.3f\n", light[0], light[1], light[2]);
-    
+
   fprintf(fp, "switches %d %d %d %d %d %d %d %d %d\n",
           usepixmap,numbers,grayvalues,bline,wire,
           withbonds,recenter,pmode,shadow);
@@ -506,7 +576,7 @@ void writeclusterdata(char outfile[], int svstep, int svrgb)
 
   if (nframe>1) {
     strext (nm, outfile, "mv", 1);
-    if((fp = fopen (nm,"w")) == NULL) {
+    if ((fp = fopen (nm,"w")) == NULL) {
       sprintf(emsg,"Cannot open file %s\n", nm); return;}
     nfrm=1;
     for (i=1;i<nframe;i=i+svstep) {
@@ -521,33 +591,31 @@ void writeclusterdata(char outfile[], int svstep, int svrgb)
     }
     fclose(fp);
     sprintf(gmsg, "Saved %d frames in %s and %s", nfrm, outfile, nm);
-    
+
   }
-  
+
   return;
 }
 
-/* ----- parse_all_colors ------- */
 void parse_all_colors ()
 {
   int i;
-  
-  for (i=0;i<nspec;i++) 
+
+  for (i=0;i<nspec;i++)
     parse_color (spec[i].cname, &spec[i].r, &spec[i].g, &spec[i].b,
                   &spec[i].gray);
-                  
-  for (i=0;i<nbonds;i++) 
+
+  for (i=0;i<nbonds;i++)
     parse_color (bonds[i].cname, &bonds[i].r, &bonds[i].g, &bonds[i].b,
                   &bonds[i].gray);
-}                  
+}
 
-/* ----- set_auto_colors ------ */
 void set_auto_colors()
 {
   int k, i, up1;
   char id[21];
   char *p;
-  
+
   for (k=0; k<nspec; k++) {
     /* separate off the identifier and change to upper case */
     up1=isupper(spec[k].lab[0]);
@@ -559,12 +627,12 @@ void set_auto_colors()
       if (up1 && isupper(*p)) break;
     }
     id[i]=0;
-    
-    /* Set default colors here. Use rgb values or color name */
-    
-    strcpy(spec[k].cname, ".68 .85 .90"); 
 
-    if (!strcmp(id,"H"))   strcpy(spec[k].cname, "1.0 0.2 0.2"); 
+    /* Set default colors here. Use rgb values or color name */
+
+    strcpy(spec[k].cname, ".68 .85 .90");
+
+    if (!strcmp(id,"H"))   strcpy(spec[k].cname, "1.0 0.2 0.2");
     if (!strcmp(id,"C"))   strcpy(spec[k].cname, "0.65 0.7 0.7");
 /*    if (!strcmp(id,"O"))   strcpy(spec[k].cname, "0.2 0.2 1.0"); */
     if (!strcmp(id,"O"))   strcpy(spec[k].cname, "blue");
@@ -579,19 +647,18 @@ void set_auto_colors()
   }
 }
 
-/* ----- ball_list ----- */
 int ball_list(struct ballstr ball[], int jpr)
 {
   int i,j,k,m;
   float top,bot,sp;
-  
+
   for(i=0;i<nbas;i++) {
     k=-1;
-    for(j=0;j<nspec;j++) if(!strcmp(spec[j].lab, atom[i].lab)) k=j;
-    if(k==-1) {
+    for(j=0;j<nspec;j++) if (!strcmp(spec[j].lab, atom[i].lab)) k=j;
+    if (k==-1) {
       if (!startup) {
-        sprintf(emsg,"Undefined species %s ", atom[i].lab); 
-      } else 
+        sprintf(emsg,"Undefined species %s ", atom[i].lab);
+      } else
         printf("Undefined species %s\n", atom[i].lab);
       continue;
     }
@@ -604,9 +671,9 @@ int ball_list(struct ballstr ball[], int jpr)
     strcpy(ball[i].lab,spec[k].lab);
     ball[i].special=0;
     ball[i].col=spec[k].col;
-    if(spec[k].gray<-0.1) {ball[i].gray=1.0; ball[i].special=1;}
+    if (spec[k].gray<-0.1) {ball[i].gray=1.0; ball[i].special=1;}
   }
-  
+
   if (gmode==G_LIGHT) {
     top=-1000.0;
     bot= 1000.0;
@@ -630,50 +697,53 @@ int ball_list(struct ballstr ball[], int jpr)
   return nbas;
 }
 
-/* ----- stick_list ------ */
-int stick_list(struct ballstr ball[], struct stickstr stick[])
+int stick_list (struct ballstr ball[], struct stickstr stick[])
 {
-  int i,j,k,l,m,nbond,kb;
-  float dis,dd;
-  
-  i=-1;
-  for(k=0;k<nbas;k++)
-    for(l=k+1;l<nbas;l++) {
-      kb=-1;
-      for(j=0;j<nbonds;j++) {
-        if(match(ball[k].lab,bonds[j].lab1) &&
-           match(ball[l].lab,bonds[j].lab2)) kb=j;
-        if(match(ball[l].lab,bonds[j].lab1) &&
-           match(ball[k].lab,bonds[j].lab2)) kb=j;
-/*        if( (!strcmp(bonds[j].lab1,ball[k].lab)) &&
-            (!strcmp(bonds[j].lab2,ball[l].lab)) ) kb=j;
-        if( (!strcmp(bonds[j].lab1,ball[l].lab)) &&
-            (!strcmp(bonds[j].lab2,ball[k].lab)) ) kb=j; */
+  int i, j, k, l, m, nbond, kb;
+  float dis, dd;
+
+  i = -1;
+  for (k=0; k<nbas; k++) {
+    for (l=k+1; l<nbas; l++) {
+
+      kb = -1;
+      for(j=0; j<nbonds; j++) {
+        if (match(ball[k].lab,bonds[j].lab1) &&
+            match(ball[l].lab,bonds[j].lab2)) kb = j;
+        if (match(ball[l].lab,bonds[j].lab1) &&
+            match(ball[k].lab,bonds[j].lab2)) kb = j;
       }
-      if (kb>-1) {
-        dis=0.0;
-        for (m=0;m<3;m++) { 
+
+      if (kb > -1) {
+        dis = 0.0;
+        for (m=0; m<3; m++) {
           dd = ball[k].pos[m] - ball[l].pos[m];
-          dis=dis+dd*dd; 
+          dis = dis + dd*dd;
         }
-        dis=alat*sqrt(dis);
-        if( (dis>=bonds[kb].min) && (dis<=bonds[kb].max) ) {
-          i++; if (i>NBMAX) rx("increase internal dimension NBMAX");
+        dis = alat * sqrt(dis);
+
+        if ((dis >= bonds[kb].min) && (dis <= bonds[kb].max)) {
+          i++;
+          if (i > NBMAX) rx("increase internal dimension NBMAX");
           stick[i].start = k;
           stick[i].end = l;
           stick[i].rad = bonds[kb].rad;
           stick[i].gray = bonds[kb].gray;
+          stick[i].r = bonds[kb].r;
+          stick[i].g = bonds[kb].g;
+          stick[i].b = bonds[kb].b;
           stick[i].col = bonds[kb].col;
         }
       }
-    }
 
-  nbond=i+1;
+    }
+  }
+
+  nbond = i + 1;
   return nbond;
 }
 
 
-/* ----- duplicate_atoms ---- */
 int duplicate_atoms(sh,helpme)
 float sh[3][6];
 int helpme;
@@ -696,7 +766,7 @@ int helpme;
     sprintf (emsg, "Cannot dup for (0,0,0)");
     return 0;
   }
-  
+
   nbas1=nbas*(ndup+1);
   if (nframe*nbas1>FBMAX) {
     sprintf(emsg,"Cannot dup, internal dimension FBMAX too small");
@@ -706,7 +776,7 @@ int helpme;
     sprintf(emsg,"Cannot dup, internal dimension NAMAX too small");
     return 0;
   }
-  
+
   for (iv=0;iv<ndup;iv++) {
     for (k=0;k<nbas;k++) {
       l=k+nbas*(iv+1);
@@ -719,7 +789,7 @@ int helpme;
       atom[l].pol[2]=atom[k].pol[2];
     }
   }
-  
+
   for (fr=nframe-1; fr>=0; fr--) {
     for (k=0;k<nbas;k++) {
       nn =fr*nbas+k;
@@ -735,13 +805,12 @@ int helpme;
       }
     }
   }
-  
+
   sprintf (gmsg, "Increased from %d to %d atoms", nbas, nbas1);
   nbas=nbas1;
   return 1;
 }
-   
-/* ----- cut_atoms ---- */
+
 int cut_atoms(cut, cut1, cut2, helpme)
 float cut[3], cut1, cut2;
 int helpme;
@@ -749,7 +818,7 @@ int helpme;
   int i,j,nbas1,fr,nn,nn1;
   float c2,s,fuzz;
   int ip[NAMAX];
-  
+
   if (helpme) {
     sprintf(gmsg,"Usage: cut vx vy vz a b  - cut along vector at a and b");
     return 0;
@@ -758,7 +827,7 @@ int helpme;
   fuzz=0.001;
   c2=cut[0]*cut[0]+cut[1]*cut[1]+cut[2]*cut[2];
   if (c2<0.01) {
-    sprintf(emsg,"cut: invalid vector (%.2f,%.2f,%.2f)", 
+    sprintf(emsg,"cut: invalid vector (%.2f,%.2f,%.2f)",
             cut[0],cut[1],cut[2],cut1,cut2);
     return 0;
   }
@@ -785,7 +854,7 @@ int helpme;
     atom[i].pol[1]=atom[j].pol[1];
     atom[i].pol[2]=atom[j].pol[2];
     strcpy(atom[i].lab,atom[j].lab);
-  }   
+  }
 
   for (fr=0; fr<nframe; fr++) {
     for (i=0;i<nbas1;i++) {
@@ -797,8 +866,8 @@ int helpme;
       frame[2][nn1]=frame[2][nn];
     }
   }
-  
-  sprintf(gmsg, "Reduced from %d to %d atoms", nbas, nbas1); 
+
+  sprintf(gmsg, "Reduced from %d to %d atoms", nbas, nbas1);
   nbas=nbas1;
   return 1;
 }
@@ -806,43 +875,41 @@ int helpme;
 
 
 
-   
-/* ----- select bonds to plot ----- */
+
 int selectbonds(int natom, struct ballstr ball[], float blen,
           float rad, float gray, struct stickstr stick[])
 {
   int i,k,l,m,nbond;
   float dis,dd;
-                 
+
   i=-1;
   for(k=0;k<natom;k++)
     for(l=k+1;l<natom;l++) {
       dis=0.0;
-      for (m=0;m<3;m++) { 
+      for (m=0;m<3;m++) {
         dd = ball[k].pos[m] - ball[l].pos[m];
-        dis=dis+dd*dd; 
+        dis=dis+dd*dd;
       }
       dis=sqrt(dis);
-      if(dis<=blen) {
+      if (dis<=blen) {
         i++;
         stick[i].start = k;
         stick[i].end = l;
         stick[i].rad = rad;
         stick[i].gray = gray;
       }
-      
+
     }
   printf("bond   start  end    radius    gray\n");
   nbond=i+1;
-  for(i=0;i<nbond;i++) 
-    printf("%3d    %3d   %3d    %7.3f  %6.2f\n", 
-           i+1, stick[i].start+1, stick[i].end+1, 
+  for(i=0;i<nbond;i++)
+    printf("%3d    %3d   %3d    %7.3f  %6.2f\n",
+           i+1, stick[i].start+1, stick[i].end+1,
            stick[i].rad,stick[i].gray);
   return nbond;
 }
 
 
-/* ----- rotmat ------ */
 void rotmat(int ixyz, float alfa)
 {
   int i,j,k;
@@ -872,11 +939,12 @@ void rotmat(int ixyz, float alfa)
     w[i][j]=0.0;
     for(k=0;k<3;k++) w[i][j]=w[i][j]+rot[i][k]*tmat[k][j];
   }
-   
+
   for(i=0;i<3;i++) for(j=0;j<3;j++) tmat[i][j]=w[i][j];
+
   return;
 }
-/* ----- eumat ------ */
+
 void eumat(float alfa, float beta, float gama)
 {
   int i,j,k;
@@ -899,15 +967,14 @@ void eumat(float alfa, float beta, float gama)
     w[i][j]=0.0;
     for(k=0;k<3;k++) w[i][j]=w[i][j]+bet[i][k]*alf[k][j];
   }
-   
+
   for(i=0;i<3;i++) for(j=0;j<3;j++) {
     tmat[i][j]=0.0;
     for (k=0;k<3;k++) tmat[i][j]=tmat[i][j]+gam[i][k]*w[k][j];
-  } 
+  }
   return;
 }
 
-/* ----- dbond ------- */
 void dbond(float gray, float m1[6], float m2[6])
 {
   float dfac=0.8;
@@ -917,7 +984,7 @@ void dbond(float gray, float m1[6], float m2[6])
 
   m2[4]=dfac*m2[4]+(1-dfac)*m1[4];
   m2[5]=dfac*m2[5]+(1-dfac)*m1[5];
-  
+
   ax=m2[0];
   ay=m2[1];
   bx=m2[2];
@@ -930,28 +997,28 @@ void dbond(float gray, float m1[6], float m2[6])
   m2[1] = -r*ay/a1;
   m2[2] = r*bx/b1;
   m2[3] = r*by/b1;
-  
+
   dx=m2[4]-m1[4];
   dy=m2[5]-m1[5];
 
-  if(m2[0]*dx<0 || m2[1]*dy<0) { 
+  if (m2[0]*dx<0 || m2[1]*dy<0) {
     m1[0]=-m1[0]; m1[1]=-m1[1]; m1[2]=-m1[2]; m1[3]=-m1[3];
     m2[0]=-m2[0]; m2[1]=-m2[1]; m2[2]=-m2[2]; m2[3]=-m2[3];
   }
 
   d1=sqrt(dx*dx+dy*dy);
   bb=sqrt(m1[2]*m1[2]+m1[3]*m1[3]);
-  if(r-bb<d1) {
+  if (r-bb<d1) {
     x=bb*d1/(r-bb);
     alf=asin(bb/x)*57.3;
-    if(hardcopy)
+    if (hardcopy)
       hardcopy_xdbond(gray, m1, m2, alf);
     else
       printf("PSWxdbond.. not changed yet\n");
 /*      PSWxdbond (gray, m1, m2, alf); */
   }
   else {
-    if(hardcopy)
+    if (hardcopy)
       hardcopy_ydbond (gray, m1, m2, alf);
     else
       printf("PSWydbond.. not changed yet\n");
@@ -960,7 +1027,6 @@ void dbond(float gray, float m1[6], float m2[6])
 }
 
 
-/* ----- getframe ------ */
 void getframe(struct ballstr ball[], int fnum)
 {
   register int m,n,nn;
@@ -976,7 +1042,7 @@ void getframe(struct ballstr ball[], int fnum)
       center[m]=sum/nbas;
     }
   }
-  
+
   for(n=0;n<nbas;n++) {
     nn=fnum*nbas+n;
     ball[n].pos[0]=frame[0][nn]-center[0];
@@ -986,7 +1052,6 @@ void getframe(struct ballstr ball[], int fnum)
 }
 
 
-/* ----- putframe ------ */
 void putframe(struct ballstr ball[], int fnum)
 {
   int   n,nn;
@@ -999,7 +1064,6 @@ void putframe(struct ballstr ball[], int fnum)
 }
 
 
-/* ----- prframes  ------ */
 void prframes()
 {
   printf ("Number of frames: %d\n", nframe );
@@ -1010,13 +1074,11 @@ void prframes()
   return;
 }
 
-/* ----- draw_lines ----- */
-void draw_lines (dash)
-int dash;
+void draw_lines (int dash)
 {
-  float p[3],q[3],fac,zp1[2],zp2[2],rad,r0;
+  float p[3], q[3], fac, zp1[2], zp2[2], rad, r1, r2;
   int n,m;
-  
+
   fac=scale;
 
   for(n=0;n<nxline;n++) {
@@ -1031,14 +1093,16 @@ int dash;
         +tmat[m][2]*(xline[n].b[2]-center[2]);
     }
 
-    atompos(fac, p, 1.0, zp1, &r0);
-    atompos(fac, q, 1.0, zp2, &r0);
+    atompos(fac, p, 1.0, zp1, &r1);
+    atompos(fac, q, 1.0, zp2, &r2);
+
+    if ((r1 < 0) || (r2 < 0)) return;
 
     if (hardcopy) {
       hardcopy_line(zp1[0]+taux,zp1[1]+tauy,zp2[0]+taux,zp2[1]+tauy,dash);
     }
     else {
-      if (dash) 
+      if (dash)
         DrawLine(zp1[0]+taux,zp1[1]+tauy,zp2[0]+taux,zp2[1]+tauy,lngc);
       else
         DrawLine(zp1[0]+taux,zp1[1]+tauy,zp2[0]+taux,zp2[1]+tauy,gc);
@@ -1048,262 +1112,298 @@ int dash;
 }
 
 
-/* ----- draw_axes ----- */
 void draw_axes ()
 {
-  float e0[3],e1[3],e2[3],z0[2],z1[2],z2[2];
-  float fac,r0,r1,r2,tx,ty,zz[3];
-  int m,i,j,i0;
+  float e0[3], e1[3], e2[3], z0[2], z1[2], z2[2];
+  float fac, r0, r1, r2, tx, ty, zz[3];
+  int m, i, j, i0;
 
-  tx  =  (70       -midx)/PSFAC;
-  ty  = -(igh-120  -midy)/PSFAC;
+  tx  =  (70       -midx) / PSFAC;
+  ty  = -(igh-120  -midy) / PSFAC;
   fac = 30;
 
-  for (m=0;m<3;m++) {
-    e0[m]=tmat[m][0];
-    e1[m]=tmat[m][1];
-    e2[m]=tmat[m][2];
+  for (m=0; m<3; m++) {
+    e0[m] = tmat[m][0];
+    e1[m] = tmat[m][1];
+    e2[m] = tmat[m][2];
   }
 
-  atompos(fac, e0, 1.0, z0, &r0);
-  atompos(fac, e1, 1.0, z1, &r1);
-  atompos(fac, e2, 1.0, z2, &r2);
+  atompos (fac, e0, 1.0, z0, &r0);
+  atompos (fac, e1, 1.0, z1, &r1);
+  atompos (fac, e2, 1.0, z2, &r2);
 
   /* sort vectors (clumsily) back to front */
-  zz[0]=e0[2];
-  zz[1]=e1[2];
-  zz[2]=e2[2];
+  zz[0] = e0[2];
+  zz[1] = e1[2];
+  zz[2] = e2[2];
 
-  for (i=0;i<3;i++) {
+  for (i=0; i<3; i++) {
     i0=0;
-    if (zz[1]<zz[i0]) i0=1;
-    if (zz[2]<zz[i0]) i0=2;
-    if (i0==0) DrawArrow (tx, ty, z0[0]+tx, z0[1]+ty, r0, "100");
-    if (i0==1) DrawArrow (tx, ty, z1[0]+tx, z1[1]+ty, r1, "010");
-    if (i0==2) DrawArrow (tx, ty, z2[0]+tx, z2[1]+ty, r2, "001");
-    zz[i0]=1e10;
+    if (zz[1] < zz[i0]) i0=1;
+    if (zz[2] < zz[i0]) i0=2;
+
+/*|     if (i0 == 0 && r0 > 0) DrawArrow (tx, ty, z0[0]+tx, z0[1]+ty, r0, "100"); |*/
+/*|     if (i0 == 1 && r1 > 0) DrawArrow (tx, ty, z1[0]+tx, z1[1]+ty, r1, "010"); |*/
+/*|     if (i0 == 2 && r2 > 0) DrawArrow (tx, ty, z2[0]+tx, z2[1]+ty, r2, "001"); |*/
+
+    if (i0 == 0 && r0 > 0) DrawArrow (tx, ty, z0[0]+tx, z0[1]+ty, r0, "X");
+    if (i0 == 1 && r1 > 0) DrawArrow (tx, ty, z1[0]+tx, z1[1]+ty, r1, "Y");
+    if (i0 == 2 && r2 > 0) DrawArrow (tx, ty, z2[0]+tx, z2[1]+ty, r2, "Z");
+
+    zz[i0] = 1e10;
   }
-  
 }
 
-/* ----- bs_transform ------ */
-void bs_transform(int natom, struct ballstr ball[])
+
+void bs_transform (int natom, struct ballstr ball[])
 {
-  register int m,n;
-  
-  for(n=0;n<natom;n++) {
-    for(m=0;m<3;m++)
-      p[n][m]=tmat[m][0]*ball[n].pos[0]
-        +tmat[m][1]*ball[n].pos[1]
-          +tmat[m][2]*ball[n].pos[2];
+  int m, n;
+
+  for (n=0; n<natom; n++) {
+
+    for (m=0; m<3; m++) {
+      p[n][m]
+        = tmat[m][0] * ball[n].pos[0]
+        + tmat[m][1] * ball[n].pos[1]
+        + tmat[m][2] * ball[n].pos[2];
+    }
+
   }
 }
 
-/* ----- bs_kernel ------ */
 void bs_kernel(int natom, struct ballstr ball[], int nbond,
                struct stickstr stick[])
 {
-  int   flag[NAMAX], ip[NAMAX], j,k,kk,m,n,ibot;
-  float br,xx,bx,by,rk,rkk,th1,th2,cth1,cth2,sth1,sth2;
-  float w,ww,bb,aa,crit1,crit2,fac,beta,gray;
-  char label[81]; 
-  int   ib,note;
+  int flag[NAMAX], ip[NAMAX], j,k,kk,m,n,ibot;
+  float br, xx, bx, by, rk, rkk, th1, th2, cth1, cth2, sth1, sth2;
+  float w, ww, bb, aa, crit1, crit2, fac, beta, gray;
+  char label[81];
+  int ib, note;
   float zp[NAMAX][2], zr[NAMAX];
   float q1[3], q2[3], b[3], d[3], bot, big;
-  float fudgefac = 0.6,bmidx,bmidy,dd;
-  float m1[6],m2[6];
-  int nbx,ibx,jbx,kbx[100],abx[100],pbx[100],fbx[100]; /* faster bond search */
-  dist=dist0;
-  if (pmode==0 || pmode==1) dist=10000.0;
-  d[0]=0.0; d[1]=0.0; d[2]=dist;
-  fac=scale;
+  float fudgefac = 0.6, bmidx, bmidy, dd;
+  float m1[6], m2[6];
+  int nbx, ibx, jbx, kbx[100], abx[100], pbx[100], fbx[100]; /* faster bond search */
 
-/* ------- sort atoms back to front ----- */
-  for(k=0;k<natom;k++) flag[k]=0;
-  for(n=0;n<natom;n++) {
-    bot=1.0e10; ibot=0;
-    for(k=0;k<natom;k++) 
-      if(p[k][2]<bot && !flag[k]) { bot=p[k][2]; ibot=k; }
-    ip[n]=ibot; flag[ibot]=1;
+  dist = dist0;
+  if (pmode == 0 || pmode == 1) dist = 10000.0;
+  d[0] = 0.0;
+  d[1] = 0.0;
+  d[2] = dist;
+  fac = scale;
+
+  /* ------- sort atoms back to front ----- */
+  for (k=0; k<natom; k++) flag[k] = 0;
+  for (n=0; n<natom; n++) {
+    bot = 1.0e10;
+    ibot = 0;
+    for (k=0; k<natom; k++) {
+      if (p[k][2] < bot && !flag[k]) {
+        bot = p[k][2];
+        ibot = k;
+      }
+    }
+    ip[n] = ibot;
+    flag[ibot] = 1;
   }
-  
-/* ------- make list of sphere centers and radii ---- */
-  big=1000000; if(nbas==0) big=0;
-  xbot=ybot=big;
-  xtop=ytop=-big;
-  for(k=0;k<natom;k++) {
-    atompos(fac, p[k], ball[k].rad, zp[k], &zr[k]);
-    zr[k]=radfac*zr[k];
-    if (zp[k][0]-zr[k] < xbot) xbot=zp[k][0]-zr[k];
-    if (zp[k][0]+zr[k] > xtop) xtop=zp[k][0]+zr[k];
-    if (zp[k][1]-zr[k] < ybot) ybot=zp[k][1]-zr[k];
-    if (zp[k][1]+zr[k] > ytop) ytop=zp[k][1]+zr[k];
+
+  /* ------- make list of sphere centers and radii ---- */
+  big = 1000000;
+  if (nbas == 0) big = 0;
+  xbot = ybot = big;
+  xtop = ytop = -big;
+  for (k=0; k<natom; k++) {
+
+    atompos (fac,  p[k], ball[k].rad, zp[k], &zr[k]);
+
+/*|     printf ("Atom %2d   p= %7.3f %7.3f %7.4f  zp= %7.3f %7.3f  zr= %7.3f\n",  |*/
+/*|             k+1, p[k][0], p[k][1], p[k][2], zp[k][0], zp[k][1], zr[k]); |*/
+/*|     if (k == natom-1) printf ("\n"); |*/
+
+    if (zr[k] > 0) {
+      zr[k] = radfac * zr[k];
+      if (zp[k][0]-zr[k] < xbot) xbot = zp[k][0] - zr[k];
+      if (zp[k][0]+zr[k] > xtop) xtop = zp[k][0] + zr[k];
+      if (zp[k][1]-zr[k] < ybot) ybot = zp[k][1] - zr[k];
+      if (zp[k][1]+zr[k] > ytop) ytop = zp[k][1] + zr[k];
+    }
   }
-/*  printf ("bounds x %.3f %.3f  y %.3f %.3f\n", xbot,xtop,ybot,ytop); */
+  /*  printf ("bounds x %.3f %.3f  y %.3f %.3f\n", xbot,xtop,ybot,ytop); */
 
-  
-/* ------- start loop over atoms; plot ball first ----- */ 
-  for (n=0;n<natom;n++) {
-    k=ip[n];
-    rk=ball[k].rad;
 
-    if(!ball[k].special) {
-      beta=exp(gslope*(p[k][2]-gz0)*gslope) ;
+  /* ------- start loop over atoms; plot ball first ----- */
+  for (n=0; n<natom; n++) {
+    k = ip[n];
+    rk = ball[k].rad;
+
+    if (!ball[k].special) {
+      beta = exp(gslope*(p[k][2]-gz0)*gslope);
       if (grayvalues) {
-        if (gmode==G_RAMP) 
-          gray=beta*ball[k].gray +(1-beta)*GRAY0;
+        if (gmode == G_RAMP)
+          gray = beta*ball[k].gray + (1-beta)*GRAY0;
         else
-          gray=ball[k].gray;
+          gray = ball[k].gray;
       }
-      else gray=1.0;
-      if(hardcopy) 
-        hardcopy_ball(gray,ball[k].r,ball[k].g,ball[k].b,
-                      zp[k][0]+taux,zp[k][1]+tauy,zr[k]);
-      else 
-        DrawBall(gray,ball[k].col,zp[k][0]+taux,zp[k][1]+tauy,zr[k]); 
+      else
+        gray = 1.0;
 
-      if(numbers || coords) {
-        if (numbers==1) sprintf(label, "%d", k+1); 
-        if (numbers==2) sprintf(label, "%s", ball[k].lab);
-        if (coords) 
-          sprintf(label, "(%.2f,%.2f,%.2f)", 
-                  ball[k].pos[0]+center[0],ball[k].pos[1]+center[1],
+      if (zr[k] < 0) {
+        if ((zr[k] < -9) || (! hardcopy)) DrawBallFromInside (gray, ball[k].col);
+        continue;
+      }
+
+
+      if (hardcopy)
+        hardcopy_ball (gray,ball[k].r, ball[k].g, ball[k].b,
+                      zp[k][0]+taux, zp[k][1]+tauy, zr[k]);
+      else
+        DrawBall (gray, ball[k].col, zp[k][0]+taux, zp[k][1]+tauy, zr[k]);
+
+      if (numbers || coords) {
+        if (numbers == 1) sprintf (label, "%d", k+1);
+        if (numbers == 2) sprintf (label, "%s", ball[k].lab);
+        if (coords)
+          sprintf (label, "(%.2f,%.2f,%.2f)",
+                  ball[k].pos[0]+center[0], ball[k].pos[1]+center[1],
                   ball[k].pos[2]+center[2]);
-        if(hardcopy)
-          hardcopy_label(zp[k][0]+taux,zp[k][1]+tauy, label); 
+        if (hardcopy)
+          hardcopy_label (zp[k][0]+taux, zp[k][1]+tauy, label);
         else
-        LabelBG(zp[k][0]+taux,zp[k][1]+tauy-2, 0.0, 1.0, label);  
-      }        
+          LabelBG (zp[k][0]+taux, zp[k][1]+tauy-2, 0.0, 1.0, label);
+      }
     }
 
-/*  ------ make list of bonds to this atom ----- */
+    /*  ------ make list of bonds to this atom ----- */
     if (!withbonds) continue;
-    nbx=0; 
-    for (j=0;j<nbond;j++) {
-      if(k==stick[j].start) { 
-        kbx[nbx]=j;
-        abx[nbx]=stick[j].end;
-        nbx++; 
+    nbx = 0;
+    for (j=0; j<nbond; j++) {
+      if (k == stick[j].start) {
+        kbx[nbx] = j;
+        abx[nbx] = stick[j].end;
+        nbx++;
       }
-      else if(k==stick[j].end) { 
-        kbx[nbx]=j; 
-        abx[nbx]=stick[j].start;
-        nbx++; 
+      else if (k == stick[j].end) {
+        kbx[nbx] = j;
+        abx[nbx] = stick[j].start;
+        nbx++;
       }
     }
-    if (nbx==0) continue;
+    if (nbx == 0) continue;
 
-    for (m=0;m<nbx;m++) fbx[m]=0;   /* sort mini-list */
-    for (m=0;m<nbx;m++) {
-      bot=1.0e10; ibot=0;
-      for (j=0;j<nbx;j++) 
-        if (p[abx[j]][2]<bot && !fbx[j]) { bot=p[abx[j]][2] ; ibot=j; }
-      pbx[m]=ibot; fbx[ibot]=1;
+    for (m=0; m<nbx; m++) fbx[m] = 0;   /* sort mini-list */
+    for (m=0; m<nbx; m++) {
+      bot = 1.0e10;
+      ibot = 0;
+      for (j=0; j<nbx; j++) {
+        if (p[abx[j]][2]<bot && !fbx[j]) {
+          bot = p[abx[j]][2];
+          ibot = j;
+        }
+      }
+      pbx[m] = ibot;
+      fbx[ibot] = 1;
     }
 
-/*  ------ inner loop over bonds ----- */
-    for (ibx=0;ibx<nbx;ibx++) {
-      jbx=pbx[ibx];
-      kk=abx[jbx];
-      ib=kbx[jbx];
-      if (ib<0) printf("this cannot happen\n");
-      rkk = ball[kk].rad;  
-/*  next few lines: the old direct procedure  */
-/*  for (nn=0;nn<natom;nn++) {
-      kk = ip[nn]; 
+    /*  ------ inner loop over bonds ----- */
+    for (ibx=0; ibx<nbx; ibx++) {
+      jbx = pbx[ibx];
+      kk = abx[jbx];
+      ib = kbx[jbx];
+      if (ib < 0) printf("this cannot happen\n");
       rkk = ball[kk].rad;
-      ib=-1;
-      for (j=0;j<nbond;j++) {
-        if(k==stick[j].start && kk==stick[j].end) ib=j;
-        if(kk==stick[j].start && k==stick[j].end) ib=j;
-      }   */
-      
-      if (ib>=0) {
-        br = bndfac*stick[ib].rad;
-        bx = zp[kk][0]-zp[k][0];
-        by = zp[kk][1]-zp[k][1];
-        xx = sqrt(bx*bx+by*by);
+
+      /* skip bonds to atoms which are not drawn because of perspective */
+      if (zr[kk] < 0) continue;
+
+      if (ib >= 0) {
+        br = bndfac * stick[ib].rad;
+        bx = zp[kk][0] - zp[k][0];
+        by = zp[kk][1] - zp[k][1];
+        xx = sqrt (bx*bx + by*by);
         if ( xx*xx < 0.0001 ) continue;
-        bx=bx/xx;
-        by=by/xx;
-        vsum(d, p[k],  1.0, -1.0, q1);
-        vsum(d, p[kk], 1.0, -1.0, q2);
-        vsum( p[kk], p[k], 1.0, -1.0, b);
+        bx = bx/xx;
+        by = by/xx;
+        vsum (d, p[k],  1.0, -1.0, q1);
+        vsum (d, p[kk], 1.0, -1.0, q2);
+        vsum (p[kk], p[k], 1.0, -1.0, b);
         cth1 =  sp(q1,b) / sqrt(sp(q1,q1)*sp(b,b));
         cth2 = -sp(q2,b) / sqrt(sp(q2,q2)*sp(b,b));
-        th1=acos(cth1);
-        th2=acos(cth2);
+        th1 = acos(cth1);
+        th2 = acos(cth2);
         crit1 = asin(br/rk) * fudgefac;
-        if (crit1<0.0) crit1=0.0;
+        if (crit1 < 0.0) crit1 = 0.0;
         crit2 = asin(br/rkk) * fudgefac;
-        if (crit2<0.0) crit2=0.0;
-        note=0;
-        if(th2-0.5*PI>crit2 && k<kk) note=1;
-        if(th1-0.5*PI<crit1 && k>kk) note=2;
-/*        if(th2-0.5*PI>crit2 && n<nn) note=1;
-        if(th1-0.5*PI<crit1 && n>nn) note=2; */
+        if (crit2 < 0.0) crit2 = 0.0;
+        note = 0;
+        if (th2-0.5*PI > crit2 && k<kk) note = 1;
+        if (th1-0.5*PI < crit1 && k>kk) note = 2;
 
-/* ------- plot a stick ------ */
+        /* ------- plot a stick ------ */
         if (note==1 || note==2) {
-          w = sqrt(rk*rk - br*br);
-          sth1 = sqrt(1.0-cth1*cth1);
+          w = sqrt (rk*rk - br*br);
+          sth1 = sqrt (1.0 - cth1*cth1);
           ww = w*sth1*zr[k]/rk;
           bb = br*zr[k]/rk;
           aa = br*cth1*zr[k]/rk;
-          m1[0]=bx*aa;   m1[1]=by*aa;
-          m1[2]=-by*bb;  m1[3]=bx*bb;
-          m1[4]=zp[k][0]+bx*ww+taux;
-          m1[5]=zp[k][1]+by*ww+tauy; 
-          w = sqrt(rkk*rkk-br*br);
-          sth2 = sqrt(1.0-cth2*cth2);
-          ww=w*sth2*zr[kk]/rkk;
-          bb=br*zr[kk]/rkk;
-          aa=br*cth2*zr[kk]/rkk;
-          m2[0]=bx*aa;   m2[1]=by*aa;
-          m2[2]=-by*bb;  m2[3]=bx*bb;
-          m2[4]=zp[kk][0]-bx*ww+taux; 
-          m2[5]=zp[kk][1]-by*ww+tauy; 
+          m1[0] = bx*aa;
+          m1[1] = by*aa;
+          m1[2] = -by*bb;
+          m1[3] = bx*bb;
+          m1[4] = zp[k][0] + bx*ww+taux;
+          m1[5] = zp[k][1] + by*ww+tauy;
+          w = sqrt (rkk*rkk - br*br);
+          sth2 = sqrt(1.0 - cth2*cth2);
+          ww = w*sth2*zr[kk]/rkk;
+          bb = br*zr[kk]/rkk;
+          aa = br*cth2*zr[kk]/rkk;
+          m2[0] = bx*aa;
+          m2[1] = by*aa;
+          m2[2] = -by*bb;
+          m2[3] = bx*bb;
+          m2[4] = zp[kk][0] - bx*ww+taux;
+          m2[5] = zp[kk][1] - by*ww+tauy;
 
-          beta=exp(gslope*(0.5*(p[k][2]+p[kk][2])-gz0)*gslope);
+          beta = exp (gslope*(0.5*(p[k][2]+p[kk][2])-gz0)*gslope);
           if (grayvalues) {
-            if (gmode==G_STD) 
+            if (gmode == G_STD)
               gray = stick[ib].gray;
-            else if (gmode==G_LIGHT)    
-              gray=0.5*(ball[k].gray+ball[kk].gray);  
-            else if(gmode==G_RAMP) 
-              gray=beta*stick[ib].gray+(1-beta)*GRAY0;
+            else if (gmode == G_LIGHT)
+              gray = 0.5 * (ball[k].gray + ball[kk].gray);
+            else if (gmode == G_RAMP)
+              gray = beta*stick[ib].gray + (1-beta)*GRAY0;
           }
-          else gray=1.0;
-          
-          if (grayvalues && bline && gray>0.7) gray=0.7;
-          if (!grayvalues && bline) gray=0.0;
-          if (grayvalues && wire) gray=0.0;
+          else
+            gray = 1.0;
+
+          if (grayvalues && bline && (gray > 0.7)) gray = 0.7;
+          if (!grayvalues && bline) gray = 0.0;
+          if (grayvalues && wire) gray = 0.0;
           if (bline) gray=0.0;    /* overrides... black if lines */
-          if (ball[k].special) 
-            dbond(1.0, m2, m1);
-          else if(ball[kk].special) 
-            dbond(1.0, m1, m2); 
+          if (ball[k].special)
+            dbond (1.0, m2, m1);
+          else if (ball[kk].special)
+            dbond (1.0, m1, m2);
           else {
-            if(hardcopy)
-              hardcopy_stick(gray, m1, m2);
+            if (hardcopy)
+/*|               hardcopy_stick (gray, m1, m2); |*/
+              hardcopy_stick(gray, stick[ib].r, stick[ib].g, stick[ib].b, m1, m2);
             else
-/*              printf ("draw stick %d  col0=%d\n", ib, stick[ib].col); */
-              DrawStick(gray, stick[ib].col, m1, m2);   
+              DrawStick (gray, stick[ib].col, m1, m2);
           }
 
-/*  next part writes bond lengths onto the sticks */
+          /*  next part writes bond lengths onto the sticks */
           if (bondnums) {
-            bmidx=0.5*(zp[k][0]+zp[kk][0])+taux;
-            bmidy=0.5*(zp[k][1]+zp[kk][1])+tauy;
-            dd=0;
-            for (m=0;m<3;m++)
-              dd=dd+pow(ball[k].pos[m]-ball[kk].pos[m],2);
-            dd=sqrt(dd);
+            bmidx = 0.5*(zp[k][0] + zp[kk][0]) + taux;
+            bmidy = 0.5*(zp[k][1] + zp[kk][1]) + tauy;
+            dd = 0;
+            for (m=0; m<3; m++)
+              dd = dd + pow(ball[k].pos[m]-ball[kk].pos[m],2);
+            dd = sqrt(dd);
             sprintf(label, "%.2f", dd);
-            if(hardcopy)
+            if (hardcopy)
               hardcopy_label (bmidx, bmidy, label);
             else
-            LabelBG (bmidx, bmidy, 0.0, 1.0, label); 
+              LabelBG (bmidx, bmidy, 0.0, 1.0, label);
           }
 
         }
@@ -1313,8 +1413,8 @@ void bs_kernel(int natom, struct ballstr ball[], int nbond,
 
   if (showaxes) draw_axes();
 
-  if (showlines==1) draw_lines(0);
-  if (showlines==2) draw_lines(1);
+  if (showlines == 1) draw_lines(0);
+  if (showlines == 2) draw_lines(1);
 
 }
 

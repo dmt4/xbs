@@ -27,7 +27,7 @@ float *rval, *gval, *bval, *gray;
     if (isalpha(cname[j])) isname=1;
     if (cname[j] != ' ') j0=j;
   }
-  
+
   if (isname) {
     if (j0>0) cname[j0+1]=0;
     if (j0>0) str[j0+1]=0;
@@ -54,7 +54,7 @@ float *rval, *gval, *bval, *gray;
   *gval=g;
   *bval=b;
   *gray=(r+g+b)/3.0;
-/*  printf ("parse_color: rgb %.3f %.3f %.3f  gray %.3f  <%s>\n", 
+/*  printf ("parse_color: rgb %.3f %.3f %.3f  gray %.3f  <%s>\n",
           *rval, *gval, *bval, *gray, cname);  */
   return rc;
 }
@@ -68,52 +68,50 @@ unsigned long gpixel;
 
   j0=-1;
   for (j=0;j<ncol;j++) if (gpx[j]==gpixel) j0=j;
-  
+
   if (j0 >=0) {
 /*    printf("GetColorGC: already have pixel %d in slot %d\n",gpixel,j0);  */
     return j0;
   }
 
   if (ncol>=NCOL) {
-    sprintf(emsg, "no more room for colors.. increase dimension NCOL"); 
+    sprintf(emsg, "no more room for colors.. increase dimension NCOL");
     return 0;
   }
-  
+
   /* find a slot and make a graphics context */
   icol=ncol;
   for (j=0;j<ncol;j++)
     if (gpx[j] == -1) icol=j;
- 
-/*  if (icol<ncol) 
+
+/*  if (icol<ncol)
     printf ("Make GC in old slot %d (%d) for pixel %d\n", icol,ncol,gpixel);
   else
     printf ("Make GC in new slot %d (%d) for pixel %d\n", icol,ncol,gpixel); */
 
   if (icol==ncol) ncol++;
   graygc[icol] = XCreateGC (dpy, win, 0, 0);
-  XSetForeground (dpy, graygc[icol], gpixel); 
+  XSetForeground (dpy, graygc[icol], gpixel);
   gpx[icol]=gpixel;
   return icol;
-  
+
 }
 
 /* ------- FreeColorGC: free GC if not needed ------- */
-FreeColorGC (icol)
-int icol;
-{
+void FreeColorGC (int icol) {
   int i,num;
 
   num=0;
-  for (i=0;i<nspec;i++) 
+  for (i=0;i<nspec;i++)
     if (spec[i].col == icol) num++;
-  for (i=0;i<nbonds;i++) 
+  for (i=0;i<nbonds;i++)
     if (bonds[i].col == icol) num++;
 
   if (num==0) {
     XFreeGC (dpy, graygc[icol]);
     gpx[icol]=-1;
   }
-  
+
 }
 
 /* ------- SetColors ------- */
@@ -123,9 +121,9 @@ void SetColors ()
   int colptr;
   unsigned long gpixel,bground;
   XColor color,col1;
-  
+
   bground = WhitePixel (dpy, screen);
-  
+
   ncol=0;
   for (i=0;i<nspec+nbonds;i++) {
     if (i<nspec) {
@@ -144,21 +142,21 @@ void SetColors ()
       gpixel = color.pixel;
     }
     else {
-      printf("Cannot allocate %6d %6d %6d, use background instead\n", 
+      printf("Cannot allocate %6d %6d %6d, use background instead\n",
              col1.red, col1.blue, col1.green);
       gpixel=bground;
     }
-    
+
     colptr=GetColorGC (gpixel);
-    if (i<nspec) 
+    if (i<nspec)
       spec[i].col=colptr;
-    else 
+    else
       bonds[i-nspec].col=colptr;
   }
 }
 
 
-/* ------- NewSpecColor ------- */ 
+/* ------- NewSpecColor ------- */
 int NewSpecColor (pat, cname, helpme)
 char pat[],cname[];
 int helpme;
@@ -173,7 +171,7 @@ int helpme;
     sprintf (gmsg, "Usage: color pattern [color]  - query or set color");
     return 0;
   }
-  
+
   if (strlen(pat)==0) {
     sprintf (emsg, "color: no pattern specified");
     return 0;
@@ -187,12 +185,12 @@ int helpme;
       strcat (list, " ");
       strcat (list, spec[i].lab);
       if (strlen(cname)==0) {
-        sprintf (gmsg, "Species %s has color <%s> rgb %.2f %.2f %.2f", 
-                 spec[i].lab, spec[i].cname, spec[i].r, spec[i].g, spec[i].b); 
+        sprintf (gmsg, "Species %s has color <%s> rgb %.2f %.2f %.2f",
+                 spec[i].lab, spec[i].cname, spec[i].r, spec[i].g, spec[i].b);
         return 0;
       }
-      
-      if (! parse_color(cname, &spec[i].r, &spec[i].g, 
+
+      if (! parse_color(cname, &spec[i].r, &spec[i].g,
                         &spec[i].b, &spec[i].gray)) {
         sprintf (emsg, "Cannot identify color <%s>", cname);
         return 0;
@@ -204,13 +202,13 @@ int helpme;
         col1.green = spec[i].g*MAXRGB;
         col1.blue  = spec[i].b*MAXRGB;
         col2=col1;
-        if (XAllocColor(dpy, cmap, &col1)) 
+        if (XAllocColor(dpy, cmap, &col1))
           gpixel = col1.pixel;
         else {
           sprintf(emsg, "Cannot allocate color <%s>", cname);
           return 0;
         }
-        
+
         icol=spec[i].col;
         spec[i].col=-1;
         FreeColorGC (icol);
@@ -228,11 +226,11 @@ int helpme;
   f=MAXRGB;
   sprintf (gmsg, "%s <%s> rgb %.2f %.2f %.2f shown as %.2f %.2f %.2f",
            list, cname, col2.red/f,col2.green/f,col2.blue/f,
-           col1.red/f,col1.green/f,col1.blue/f);  
+           col1.red/f,col1.green/f,col1.blue/f);
   if (nmatch==0) return 0;
   return 1;
 }
-        
+
 /* ------- SetSmoothGrays --- --- */
 void SetSmoothGrays ()
 {
@@ -250,7 +248,7 @@ void SetSmoothGrays ()
 
   lastgnum=0;
   for (i=0;i<ngray;i++) {
-    gnum = g1 + i*dg; 
+    gnum = g1 + i*dg;
     color.red=color.blue=color.green=gnum;
     allocated[i]=XAllocColor(dpy, cmap, &color);
     if (allocated[i]) {
@@ -263,7 +261,7 @@ void SetSmoothGrays ()
     }
     graygc[i] = XCreateGC (dpy, win, 0, 0);
     gpixel = color.pixel;
-    XSetForeground (dpy, graygc[i], gpixel); 
+    XSetForeground (dpy, graygc[i], gpixel);
   }
 }
 
@@ -277,14 +275,14 @@ void SetStippled4x4 ()
   Pixmap tile;
   int tw=4, th=4;
   static char t0[]  = {0x00, 0x00, 0x00, 0x00};
-  static char t2[]  = {0x01, 0x00, 0x04, 0x00}; 
+  static char t2[]  = {0x01, 0x00, 0x04, 0x00};
   static char t4[]  = {0x01, 0x04, 0x01, 0x04};
   static char t6[]  = {0x05, 0x02, 0x05, 0x08};
   static char t8[]  = {0x05, 0x0a, 0x05, 0x0a};
   static char t10[] = {0xfa, 0xfd, 0xfa, 0xf7};
   static char t12[] = {0xfe, 0xfb, 0xfe, 0xfb};
   static char t14[] = {0xfe, 0xff, 0xfb, 0xff};
-  
+
   depth  = XDefaultDepth (dpy, screen);
   fg = BlackPixel (dpy, screen);
   bg = WhitePixel (dpy, screen);
@@ -299,7 +297,7 @@ void SetStippled4x4 ()
   if (XAllocColor(dpy, cmap, &color2)) lg = color2.pixel;
   else printf("Could not allocate gray value %d\n", gnum2);
 /*  printf("Gray values: %d %d\n", color1.red, color2.red); */
-  
+
   n=0;
   for (j=0; j<3; j++) {
     if (j==2) { g1=fg; g2=dg; }
@@ -336,12 +334,12 @@ void SetStippled4x6 ()
   static char t12[] = {0x05, 0x0a, 0x05, 0x0a, 0x05, 0x0a};
   static char t18[] = {0xfe, 0xfb, 0xfe, 0xfb, 0xfe, 0xfb};
   static char t24[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-  
+
   depth  = XDefaultDepth (dpy, screen);
   fg = BlackPixel (dpy, screen);
   bg = WhitePixel (dpy, screen);
 
-  if (XAllocColor(dpy, cmap, &color)) { 
+  if (XAllocColor(dpy, cmap, &color)) {
     gr = color.pixel;
     printf(" gray is %d %d %d\n", color.red, color.blue, color.green);
   }
@@ -403,7 +401,7 @@ int col0;
   if (! grayvalues) return gcbg;
   if (color) {
     return graygc[col0];
-  } 
+  }
   else {
     igray=(1.0-gray)*ngray-0.49;
     if (igray>ngray-1) igray=ngray-1;
@@ -422,18 +420,18 @@ char          s1[],s2[],s3[];
   strcpy (sx, s1);
   strcat (sx, s2);
   strcat (sx, s3);
-  XFillRectangle(dpy, drawable, gcbg, x, igh-y-9, x+6*strlen(sx), 12); 
-  XDrawString (dpy, drawable, labelgc, x, igh-y, sx, strlen(sx)); 
+  XFillRectangle(dpy, drawable, gcbg, x, igh-y-9, x+6*strlen(sx), 12);
+  XDrawString (dpy, drawable, labelgc, x, igh-y, sx, strlen(sx));
 
-}     
+}
 
 /* ------ clearline ------ */
 void clearline(drawable, x, y)
 Drawable      drawable;
 int           x,y;
 {
-  XFillRectangle(dpy, drawable, gcbg, x, igh-y-11, igw-x-20, 14); 
-}     
+  XFillRectangle(dpy, drawable, gcbg, x, igh-y-11, igw-x-20, 14);
+}
 
 /* ------ DrawArrow ------ */
 void DrawArrow(x0, y0, x1, y1, rad, str)
@@ -455,8 +453,8 @@ char str[];
   yy=yy1+0.3*(yy1-yy0)+4;
   dd=strlen(str)*6;
   XDrawLine   (dpy, drw, labbggc, xx+2-dd/2, yy-4, xx+dd/2-2, yy-4);
-  XDrawString (dpy, drw, labelgc, xx-dd/2, yy, str, strlen(str)); 
-  
+  XDrawString (dpy, drw, labelgc, xx-dd/2, yy, str, strlen(str));
+
 }
 
 
@@ -466,7 +464,7 @@ float x0,y0,x1,y1;
 GC thegc;
 {
   int xx1,yy1,xx0,yy0;
-  
+
   xx1=midx+PSFAC*x1;
   yy1=midy-PSFAC*y1;
   xx0=midx+PSFAC*x0;
@@ -476,23 +474,40 @@ GC thegc;
 }
 
 
+/* ------ DrawBallFromInside ------ */
+void DrawBallFromInside (float gray, int col0)
+{
+  GC gcfill, gcstipl;
+
+  gcfill = ChooseColor (gray, col0);
+
+  gcstipl = XCreateGC (dpy, win, 0, 0);
+  XCopyGC (dpy, gcfill, GCForeground, gcstipl);
+  XSetStipple (dpy, gcstipl, stipl);
+  XSetFillStyle (dpy, gcstipl, FillStippled);
+
+  XFillRectangle (dpy, drw, gcstipl, 20, 20, igw-40, igh-40);
+  XFreeGC (dpy, gcstipl);
+}
+
 /* ------ DrawBall ------ */
-void DrawBall(gray, col0, x, y, rad)
-float gray,x,y,rad;
+void DrawBall (gray, col0, x, y, rad)
+float gray, x, y, rad;
 int   col0;
 {
-  int xx,yy,rr,icol;
+  int xx, yy, rr, icol;
   GC gcfill;
-  
-  rr=PSFAC*rad;
-  xx=midx+PSFAC*x;
-  yy=midy-PSFAC*y;
-  if (shadow) 
+
+  rr = PSFAC * rad;
+  xx = midx + PSFAC*x;
+  yy = midy - PSFAC*y;
+  if (shadow)
     XDrawArc (dpy, drw, shadowgc, xx-rr, yy-rr, 2*rr, 2*rr, 0, 360*64);
   if (! wire) {
-    gcfill=ChooseColor(gray,col0);
+    gcfill = ChooseColor(gray,col0);
     XFillArc (dpy, drw, gcfill, xx-rr, yy-rr, 2*rr, 2*rr, 0, 360*64);
   }
+
   XDrawArc (dpy, drw, gc, xx-rr, yy-rr, 2*rr, 2*rr, 0, 360*64);
 }
 
@@ -501,42 +516,43 @@ void DrawStick(gray, col0, m1, m2)
 float gray, m1[6], m2[6];
 int col0;
 {
-  int x1,y1,x2,y2,i,igray;
-  float x,y;
+  int x1, y1, x2, y2, i, igray;
+  float x, y;
   XPoint pp[NPOINTS*2+1];
   GC gcfill;
 
   if (bline) {
-    x1=midx+PSFAC*m1[4];
-    y1=midy-PSFAC*m1[5];
-    x2=midx+PSFAC*m2[4];
-    y2=midy-PSFAC*m2[5];
-    if (shadow) 
+    x1 = midx + PSFAC*m1[4];
+    y1 = midy - PSFAC*m1[5];
+    x2 = midx + PSFAC*m2[4];
+    y2 = midy - PSFAC*m2[5];
+    if (shadow)
       XDrawLine (dpy, drw, shadowgc, x1, y1, x2, y2);
     XDrawLine (dpy, drw, gc, x1, y1, x2, y2);
     return;
   }
 
-  for (i=0;i<NPOINTS;i++) {
-    x=m1[0]*arc[i][0]+m1[2]*arc[i][1]+m1[4];
-    y=m1[1]*arc[i][0]+m1[3]*arc[i][1]+m1[5];
-    pp[i].x=midx+PSFAC*x;
-    pp[i].y=midy-PSFAC*y;
+  for (i = 0; i<NPOINTS; i++) {
+    x = m1[0]*arc[i][0] + m1[2]*arc[i][1] + m1[4];
+    y = m1[1]*arc[i][0] + m1[3]*arc[i][1] + m1[5];
+    pp[i].x = midx + PSFAC*x;
+    pp[i].y = midy - PSFAC*y;
   }
-  for (i=0;i<NPOINTS;i++) {
-    x=-m2[0]*arc[i][0]+m2[2]*arc[i][1]+m2[4];
-    y=-m2[1]*arc[i][0]+m2[3]*arc[i][1]+m2[5];
-    pp[2*NPOINTS-i-1].x=midx+PSFAC*x;
-    pp[2*NPOINTS-i-1].y=midy-PSFAC*y;
-  }
-  pp[2*NPOINTS]=pp[0];
 
-  if (shadow) 
+  for (i = 0; i<NPOINTS; i++) {
+    x = -m2[0]*arc[i][0] + m2[2]*arc[i][1] + m2[4];
+    y = -m2[1]*arc[i][0] + m2[3]*arc[i][1] + m2[5];
+    pp[2*NPOINTS-i-1].x = midx + PSFAC*x;
+    pp[2*NPOINTS-i-1].y = midy - PSFAC*y;
+  }
+  pp[2*NPOINTS] = pp[0];
+
+  if (shadow)
     XDrawLines (dpy, drw, shadowgc, &pp[0], 2*NPOINTS+1, CoordModeOrigin);
   if (! wire) {
-    gcfill=ChooseColor(gray,col0);
-    XFillPolygon (dpy, drw, gcfill, &pp[0], 2*NPOINTS+1, 
-                  Nonconvex, CoordModeOrigin); 
+    gcfill = ChooseColor(gray,col0);
+    XFillPolygon (dpy, drw, gcfill, &pp[0], 2*NPOINTS+1,
+                  Nonconvex, CoordModeOrigin);
   }
   XDrawLines (dpy, drw, gc, &pp[0], 2*NPOINTS+1, CoordModeOrigin);
 
@@ -544,21 +560,18 @@ int col0;
 
 /* ------ LabelBG ------ */
 void LabelBG (x, y, g1, g2, str)
-float x,y,g1,g2;
+float x, y, g1, g2;
 char str[];
 {
-  int xx,yy,dd;
-  
-  xx=midx+PSFAC*x;
-  yy=midy-PSFAC*y;
-/*  dd=strlen(str)*6+5; */
-/*  XFillRectangle(dpy, drw, gcbg, xx-2, yy-10, dd, 13); */
-  dd=strlen(str)*6;
+  int xx, yy, dd;
+
+  xx = midx + PSFAC*x;
+  yy = midy - PSFAC*y;
+  dd = strlen(str)*6;
 
   XDrawLine (dpy, drw, labbggc, xx+2-dd/2, yy-4, xx+dd/2-2, yy-4);
 
-
-  XDrawString (dpy, drw, labelgc, xx-dd/2, yy, str, strlen(str)); 
+  XDrawString (dpy, drw, labelgc, xx-dd/2, yy, str, strlen(str));
 
 }
 

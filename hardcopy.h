@@ -17,29 +17,49 @@ void HCballWire()
           "/BALL  { 0 360 arc pop stroke } bind def\n");
 }
 
-void HCballShadow(float gray, float wid)
+
+void HCballShadow (float gray, float wid)
 {
-  fprintf(outfp,
+  if (color)
+    fprintf(outfp,
+          "/BALL  { 0 360 arc\n "
+          "   gsave %.2f setgray %.2f setlinewidth stroke grestore\n"
+          "   gsave setrgbcolor fill grestore\n"
+            "   stroke } bind def\n", gray, wid);
+  else
+    fprintf(outfp,
           "/BALL  { 0 360 arc\n "
           "   gsave %.2f setgray %.2f setlinewidth stroke grestore\n"
           "   gsave setgray fill grestore\n"
-          "   stroke } bind def\n", gray, wid);
+            "   stroke } bind def\n", gray, wid);
 }
 
 void HCstickFull()
 {
-  fprintf(outfp,
-          "/STICK { CP gsave setgray fill grestore stroke } bind def\n");
+  if (color)
+    fprintf(outfp,
+            "/STICK { CP gsave setrgbcolor fill grestore stroke } bind def\n");
+  else
+    fprintf(outfp,
+            "/STICK { CP gsave setgray fill grestore stroke } bind def\n");
 }
 
-void HCstickShadow(float gray, float wid)
+void HCstickShadow (float gray, float wid)
 {
-  fprintf(outfp,
-          "/STICK { CP\n"
-          "gsave %.2f setgray %.2f setlinewidth stroke grestore\n"
-          "gsave setgray fill grestore\n"
-          "stroke } bind def\n", gray, wid);
+  if (color)
+    fprintf(outfp,
+            "/STICK { CP\n"
+            "gsave %.2f setgray %.2f setlinewidth stroke grestore\n"
+            "gsave setrgbcolor fill grestore\n"
+            "stroke } bind def\n", gray, wid);
+  else
+    fprintf(outfp,
+             "/STICK { CP\n"
+	     "gsave %.2f setgray %.2f setlinewidth stroke grestore\n"
+	     "gsave setgray fill grestore\n"
+	     "stroke } bind def\n", gray, wid);
 }
+
 
 void HCstickWire()
 {
@@ -54,7 +74,7 @@ void HCstickLine()
 
 }
 
-void HCstickLineShadow(float gray, float wid)
+void HCstickLineShadow (float gray, float wid)
 {
   fprintf(outfp,
           "/STICK { CP0 \n"
@@ -148,7 +168,7 @@ void hardcopy_redefine()
   }
   else {
     if (shadow) {
-      HCballShadow(1.0, 4.0);
+      HCballShadow (1.0, 4.0);
       if (bline) HCstickLineShadow(1.0, 4.0);
       else       HCstickShadow(1.0, 4.0);
     }
@@ -162,7 +182,7 @@ void hardcopy_redefine()
   else        HCdbond();
 }
 
-/* ------ hardcopy_ball, hardcopy_stick ----- */
+/* ----- hardcopy_ball, hardcopy_stick ----- */
 void hardcopy_ball(float gray, float r, float g, float b, float x, float y, float rad)
 {
   if (color)
@@ -182,21 +202,37 @@ void hardcopy_label(float x, float y, char *str)
           x+midx/PSFAC-sh,y+600-midy/PSFAC-2);
 }
 
-void hardcopy_stick(float gray, float m1[6], float m2[6])
+void hardcopy_stick(float gray, float r, float g, float b, float m1[6], float m2[6])
 {
-  fprintf(outfp,
-          "%6.2f [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]\n",
-          gray, 
-          m1[0], m1[1], m1[2], m1[3], 
-          m1[4]+midx/PSFAC, m1[5]+600-midy/PSFAC);
-  fprintf(outfp,
-          "       [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]  STICK\n",
-          m2[0], m2[1], m2[2], m2[3], 
-          m2[4]+midx/PSFAC, m2[5]+600-midy/PSFAC);
+
+  if (color) {
+    fprintf(outfp,
+            "%.2f %.2f %.2f [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]\n",
+            r, g, b, 
+            m1[0], m1[1], m1[2], m1[3], 
+            m1[4]+midx/PSFAC, m1[5]+600-midy/PSFAC);
+    fprintf(outfp,
+            "       [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]  STICK\n",
+            m2[0], m2[1], m2[2], m2[3], 
+            m2[4]+midx/PSFAC, m2[5]+600-midy/PSFAC);
+  }
+  
+  else {
+    fprintf(outfp,
+            "%6.2f [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]\n",
+	    gray,
+	    m1[0], m1[1], m1[2], m1[3],
+	    m1[4]+midx/PSFAC, m1[5]+600-midy/PSFAC);
+    fprintf(outfp,
+            "       [%7.1f%7.1f%7.1f%7.1f%7.1f%7.1f ]  STICK\n",
+	    m2[0], m2[1], m2[2], m2[3],
+	    m2[4]+midx/PSFAC, m2[5]+600-midy/PSFAC);
+  }
 }
 
 
-/* ------ hardcopy_xline ----- */
+
+/* ----- hardcopy_xline ----- */
 void hardcopy_line(x1,y1,x2,y2,dash)
 float x1,y1,x2,y2;
 int dash;
@@ -218,10 +254,12 @@ int dash;
 /* ----- hardcopy_close ------ */
 void hardcopy_close()
 {
+
   fprintf(outfp,
-"showpage\n"
-"%%%%EOF\n");
- fclose(outfp);
+          "showpage\n"
+          "%%%%EOF\n");
+  fclose(outfp);
+
 }
 
 void hardcopy_xdbond(float gray, float m1[6], float m2[6], float alf)

@@ -1,8 +1,13 @@
 #!/bin/csh -f
+
 # compile and link with xwindow routines
+
+
 if ($#argv == 0) goto help
   set n = $#argv
   set p = $argv[$n]
+  if ("$p:e" == "c") set p = $p:r
+
   @ m = $n - 1
   set ops = ( $argv[1-$m] )  
 
@@ -12,7 +17,7 @@ if (! -e $p.c) then
    exit 2
 endif
 
-set echo
+#set echo
 rm -f $p.o
 
 # ------ compile -------
@@ -20,16 +25,18 @@ set i1 = ' '
 set i2 = ' '
 
 # gcc -c $i1 $i2 $p.c
+echo  cc -c $ops $i1 $i2 $p.c
    cc -c $ops $i1 $i2 $p.c
 
 
 # ------ link ----------
 
-set LX = '-L/usr/X11R6/lib'
+set LX = '-L/usr/X11/lib'
 
-set libs = '-lX11 -lm'
+set libs = '-lX11 -lXt -lm'
 
 # gcc -o $p $p.o $LX $libs
+echo  cc -o $p $p.o $LX $libs
   cc -o $p $p.o $LX $libs
 
 exit

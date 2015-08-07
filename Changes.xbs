@@ -2,8 +2,19 @@
 Changes to the xbs program
 
 
+3.8.2015 various changes (M. Methfessel):
+         Merged in PS output fix by Alessandro Mottura
+         Merged in "tell" command from xbsa by Jan Labanowski
+         Added animation, adapted from xbsa
+         Animate as rotation with Ctrl-<cursor>
+         Write PS files during animation with Ctrl-O
+         Quick print with Ctrl-P
+         Handle crazy perspective cases, eg. viewpoint inside a ball
+
+
+
 06.09.97 The program now plots additional straight lines,
-         typically the edges of the unit cell. 
+         typically the edges of the unit cell.
          Input in the .bs file is like this:
 
             line    0.0 0.0 0.0   1.0 0.0 0.0
