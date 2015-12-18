@@ -56,8 +56,8 @@
 
 #define  W_HEIGHT     450      /* startup size */
 #define  W_WIDTH      550
-#define  NAMAX       2000
-#define  NBMAX       8000
+#define  NAMAX       16384
+#define  NBMAX       262144
 #define  NBTMAX       200
 #define  NSPMAX        50
 #define  NLNMAX        50
